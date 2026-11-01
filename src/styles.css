@@ -128,3 +128,73 @@
     padding: 18px;
   }
 }
+
+
+.demo-logout-button {
+  width: calc(100% - 32px);
+  margin: 20px 16px;
+  padding: 12px;
+  border: 1px solid #334155;
+  border-radius: 9px;
+  background: #1e293b;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.demo-logout-button:hover {
+  background: #334155;
+}
+
+
+/* Dashboard scrolling: fixed sidebar, independently scrolling main area */
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.main-area {
+  margin-left: 258px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 1200px) {
+  .main-area {
+    margin-left: 230px;
+  }
+}
+
+@media (max-width: 900px) {
+  .main-area {
+    margin-left: 0;
+  }
+}
