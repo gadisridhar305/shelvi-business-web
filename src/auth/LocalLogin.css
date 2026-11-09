@@ -1,0 +1,22 @@
+.local-login-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:#f4f6fb;font-family:Inter,"Segoe UI",sans-serif;color:#182438}
+.local-login-card{width:min(100%,420px);padding:30px;border:1px solid #e6eaf1;border-radius:18px;background:#fff;box-shadow:0 18px 55px #1d2b4512}
+.local-login-brand{display:flex;align-items:center;gap:11px;margin-bottom:30px}
+.local-login-logo{width:43px;height:43px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(140deg,#a79cff,#7160e8);color:white;font-size:24px;font-weight:800}
+.local-login-brand strong,.local-login-brand small{display:block}
+.local-login-brand strong{font-size:19px;letter-spacing:2px}
+.local-login-brand small{margin-top:3px;color:#8b96a8;font-size:8px;letter-spacing:1.5px}
+.local-login-heading{margin-bottom:24px}
+.local-login-icon{width:43px;height:43px;display:grid;place-items:center;margin-bottom:13px;border-radius:12px;background:#f0edff;color:#7565e6}
+.local-login-heading h1{margin:0;font-size:24px}
+.local-login-heading p{margin:7px 0 0;color:#8792a4;font-size:12px}
+.local-login-form{display:grid;gap:17px}
+.local-login-form label{display:grid;gap:8px;color:#46536a;font-size:12px;font-weight:600}
+.local-login-input{height:44px;display:flex;align-items:center;gap:10px;padding:0 12px;border:1px solid #e1e5ed;border-radius:8px;color:#8c96a6}
+.local-login-input:focus-within{border-color:#8172e9;box-shadow:0 0 0 3px #8172e91a}
+.local-login-input input{width:100%;min-width:0;border:0;outline:0;color:#243149;font:inherit;font-weight:400}
+.local-login-input input::placeholder{color:#a8b0bd}
+.local-login-error{margin:0;padding:10px 12px;border:1px solid #ffd6d6;border-radius:8px;background:#fff4f4;color:#c43d3d;font-size:11px}
+.local-login-submit{height:45px;border:0;border-radius:9px;background:#7565e6;color:#fff;font-size:12px;font-weight:700;cursor:pointer}
+.local-login-submit:hover{background:#6555d2}
+.local-login-hint{margin:20px 0 0;padding:12px;border-radius:8px;background:#f7f6ff;color:#7e8797;text-align:center;font-size:11px;line-height:1.8}
+.local-login-hint strong{color:#5749bb}

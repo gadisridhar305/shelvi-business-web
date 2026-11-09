@@ -14,6 +14,7 @@ import WorkerDashboard, {
   type WorkerUser,
 } from "./worker/WorkerDashboard";
 import UserLogin from "./auth/UserLogin";
+import LandingPage from "./LandingPage";
 
 type Campaign = {
   id: number;
@@ -345,86 +346,79 @@ const handleWorkerLogout = () => {
     window.setTimeout(() => setNotice(""), 5000);
   }
 
-  // Simple path routing: /admin = business dashboard, /user = worker dashboard.
-  const currentPath = window.location.pathname.replace("", "") || "/";
-  const isAdminRoute = currentPath === "/admin";
-  const isUserRoute = currentPath === "/user";
+  // Route handling. Keep these checks after every React hook.
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  const isAdminRoute = pathname === "/admin";
+  const isUserRoute = pathname === "/user";
 
-  // Keep all React hooks above these conditions.
+  // The root URL must always show the portal-selection landing page.
+  if (pathname === "/") {
+    return (
+      <LandingPage
+        onOpenUser={() => {
+          window.location.href = "/user";
+        }}
+        onOpenBusiness={() => {
+          window.location.href = "/admin";
+        }}
+      />
+    );
+  }
 
-// /user always opens the worker dashboard.
-if (isUserRoute) {
-  const demoWorker: WorkerUser = currentWorker ?? {
-    id: "demo-worker",
-    fullName: "Demo Worker",
-    email: "worker@shelvi.demo",
-    phone: "",
-    country: "India",
-    state: "Andhra Pradesh",
-    city: "Pithapuram",
-    language: "Telugu",
-    device: "Desktop",
-    role: "worker",
-    verificationStatus: "Pending",
-  };
+  // User portal: show the worker dashboard after login, otherwise show login.
+  if (isUserRoute) {
+    if (currentWorker) {
+      return (
+        <WorkerDashboard
+          worker={currentWorker}
+          onLogout={() => {
+            handleWorkerLogout();
+            window.location.href = "/";
+          }}
+        />
+      );
+    }
 
-  return (
-    <WorkerDashboard
-      worker={demoWorker}
-      onLogout={() => {
-        handleWorkerLogout();
-        window.location.href = "/";
-      }}
-    />
-  );
-}
+    return <UserLogin onLogin={handleWorkerLogin} />;
+  }
 
-// /admin opens the completed business dashboard directly.
-if (!isAdminRoute && authPage === "user-login") {
-  return (
-    <UserLogin
-      onLogin={handleWorkerLogin}
-      onBack={() => setAuthPage("landing")}
-    />
-  );
-}
+  // Keep the existing registration screens available when authPage is set.
+  if (authPage === "business-register") {
+    return (
+      <BusinessRegister
+        onBack={() => setAuthPage("landing")}
+        onGoToLogin={() => setAuthPage("business-login")}
+      />
+    );
+  }
 
-if (!isAdminRoute && authPage === "business-register") {
-  return (
-    <BusinessRegister
-      onBack={() => setAuthPage("landing")}
-      onGoToLogin={() => setAuthPage("business-login")}
-    />
-  );
-}
+  if (authPage === "user-register") {
+    return (
+      <UserRegister
+        onBack={() => setAuthPage("landing")}
+        onGoToLogin={() => setAuthPage("user-login")}
+      />
+    );
+  }
 
-if (!isAdminRoute && authPage === "user-register") {
-  return (
-    <UserRegister
-      onBack={() => setAuthPage("landing")}
-      onGoToLogin={() => setAuthPage("user-login")}
-    />
-  );
-}
+  // Business portal: retain the existing business login and dashboard.
+  if (isAdminRoute && !isLoggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
 
-if (!isAdminRoute && currentWorker !== null) {
-  return (
-    <WorkerDashboard
-      worker={currentWorker}
-      onLogout={handleWorkerLogout}
-    />
-  );
-}
-
-// Keep the existing demo login for the root route, but do not block /admin.
-if (!isAdminRoute && !isLoggedIn) {
-  return <Login onLogin={handleLogin} />;
-}
-
-// The existing business dashboard JSX below is retained unchanged.
-
-
-
+  // Unknown paths return to the portal-selection page.
+  if (!isAdminRoute) {
+    return (
+      <LandingPage
+        onOpenUser={() => {
+          window.location.href = "/user";
+        }}
+        onOpenBusiness={() => {
+          window.location.href = "/admin";
+        }}
+      />
+    );
+  }
 
   return (
     <div className="app-shell">

@@ -1,0 +1,22 @@
+.shelvi-auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 16px;background:#f4f6fb;color:#182438;font-family:Inter,"Segoe UI",sans-serif}
+.shelvi-auth-card{width:min(100%,760px);padding:28px;border:1px solid #e7eaf1;border-radius:18px;background:#fff;box-shadow:0 18px 55px #1d2b4512}
+.shelvi-login-card{width:min(100%,450px)}
+.shelvi-back-button{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;background:transparent;color:#68758a;font-size:12px;cursor:pointer}
+.shelvi-auth-brand{display:flex;align-items:center;gap:11px;margin:23px 0 27px}
+.shelvi-auth-logo{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(140deg,#a79cff,#7160e8);color:#fff;font-size:23px;font-weight:800}
+.shelvi-auth-brand strong,.shelvi-auth-brand small{display:block}.shelvi-auth-brand strong{color:#17243a;font-size:19px;letter-spacing:2px}.shelvi-auth-brand small{margin-top:3px;color:#8b96a8;font-size:8px;letter-spacing:1.4px}
+.shelvi-auth-heading{margin-bottom:22px}.shelvi-auth-icon{width:42px;height:42px;display:grid;place-items:center;margin-bottom:13px;border-radius:12px;background:#f0edff;color:#7565e6}
+.shelvi-auth-heading h1{margin:0;color:#182438;font-size:23px;letter-spacing:-.5px}.shelvi-auth-heading p{margin:7px 0 0;color:#8792a4;font-size:12px}
+.shelvi-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.shelvi-field{min-width:0;display:flex;flex-direction:column;gap:7px;color:#46536a;font-size:11px;font-weight:600}
+.shelvi-field input,.shelvi-field select{width:100%;min-width:0;height:42px;padding:0 12px;border:1px solid #e1e5ed;border-radius:8px;outline:none;background:#fff;color:#243149;font:inherit;font-size:12px;font-weight:400}
+.shelvi-field input:focus,.shelvi-field select:focus{border-color:#8172e9;box-shadow:0 0 0 3px #8172e91a}
+.shelvi-field input::placeholder{color:#a8b0bd}
+.shelvi-password-wrap{position:relative;display:block}.shelvi-password-wrap input{padding-right:43px}
+.shelvi-password-wrap button{position:absolute;top:50%;right:10px;display:grid;place-items:center;padding:4px;transform:translateY(-50%);border:0;background:transparent;color:#8c96a6;cursor:pointer}
+.shelvi-auth-error{padding:10px 12px;margin:15px 0 0;border:1px solid #ffd6d6;border-radius:8px;background:#fff4f4;color:#c43d3d;font-size:11px;line-height:1.5}
+.shelvi-auth-submit{width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;margin-top:20px;border:0;border-radius:9px;background:#7565e6;color:white;font-size:12px;font-weight:700;cursor:pointer}
+.shelvi-auth-submit:hover{background:#6555d2}.shelvi-auth-submit:disabled{opacity:.65;cursor:not-allowed}
+.shelvi-auth-switch{margin:20px 0 0;color:#8993a3;text-align:center;font-size:11px}.shelvi-auth-switch button{padding:0;border:0;background:transparent;color:#7060dc;font:inherit;font-weight:700;cursor:pointer}
+.shelvi-auth-disclaimer{margin:16px 0 0;color:#a0a8b5;text-align:center;font-size:9px;line-height:1.5}.shelvi-login-form{display:grid;gap:17px}
+@media(max-width:600px){.shelvi-auth-page{align-items:flex-start;padding:12px}.shelvi-auth-card{padding:20px 16px;border-radius:14px}.shelvi-form-grid{grid-template-columns:1fr}}
