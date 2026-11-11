@@ -40,6 +40,18 @@ export default function LandingPage({
         </div>
 
         <div className="shelvi-home-options">
+          
+          <article className="shelvi-choice-card business-choice">
+            <div className="shelvi-choice-icon"><BriefcaseBusiness size={25} /></div>
+            <span className="shelvi-choice-kicker">FOR BUSINESSES</span>
+            <h2>Business Dashboard</h2>
+            <p>Access your business workspace to manage campaigns, tasks, and your profile.</p>
+            <button type="button" onClick={onOpenBusiness}>
+              Continue as Business <ArrowRight size={17} />
+            </button>
+            <small>Business login · Registration · Dashboard</small>
+          </article>
+          
           <article className="shelvi-choice-card user-choice">
             <div className="shelvi-choice-icon"><UsersRound size={25} /></div>
             <span className="shelvi-choice-kicker">FOR WORKERS & USERS</span>
@@ -51,16 +63,6 @@ export default function LandingPage({
             <small>Login · Registration · User dashboard</small>
           </article>
 
-          <article className="shelvi-choice-card business-choice">
-            <div className="shelvi-choice-icon"><BriefcaseBusiness size={25} /></div>
-            <span className="shelvi-choice-kicker">FOR BUSINESSES</span>
-            <h2>Business Dashboard</h2>
-            <p>Access your business workspace to manage campaigns, tasks, and your profile.</p>
-            <button type="button" onClick={onOpenBusiness}>
-              Continue as Business <ArrowRight size={17} />
-            </button>
-            <small>Business login · Registration · Dashboard</small>
-          </article>
         </div>
       </section>
 

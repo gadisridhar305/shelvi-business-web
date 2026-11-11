@@ -1,6 +1,6 @@
+
 import { useEffect, useMemo, useState } from "react";
 import "./TaskMarketplace.css";
-
 import {
   Search,
   Smartphone,
@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   X,
   Eye,
+  Upload,
 } from "lucide-react";
 
 type Task = {
@@ -23,10 +24,28 @@ type Task = {
   device: string;
   location: string;
   description: string;
+  instructions: string[];
+  proofRequired: string;
+  deadlineDays: number;
 };
 
-type AcceptedTask = Task & {
-  status: "Accepted" | "Submitted";
+export type WorkerTask = Task & {
+  status:
+    | "Accepted"
+    | "Pending Verification"
+    | "Approved"
+    | "Rejected"
+    | "Completed";
+  acceptedAt: string;
+  submittedAt?: string;
+  proofNote?: string;
+  proofFileName?: string;
+};
+
+type Props = {
+  workerId: string;
+  view?: "marketplace" | "my-tasks";
+  onTasksChange?: (tasks: WorkerTask[]) => void;
 };
 
 const initialTasks: Task[] = [
@@ -39,7 +58,17 @@ const initialTasks: Task[] = [
     minutes: 5,
     device: "Android",
     location: "India",
-    description: "Install the application and complete registration.",
+    description:
+      "Install the application and complete registration.",
+    instructions: [
+      "Open the campaign app link provided by the client.",
+      "Install the app on your Android device.",
+      "Complete the registration form using valid details.",
+      "Capture a screenshot showing successful registration.",
+    ],
+    proofRequired:
+      "Screenshot of the successful registration screen",
+    deadlineDays: 2,
   },
   {
     id: 2,
@@ -50,7 +79,17 @@ const initialTasks: Task[] = [
     minutes: 15,
     device: "Desktop",
     location: "India",
-    description: "Explore the website and submit your feedback.",
+    description:
+      "Explore the website and submit your feedback.",
+    instructions: [
+      "Open the website on a desktop browser.",
+      "Explore the home page and the main navigation.",
+      "Test the key user journey.",
+      "Write clear feedback about your experience.",
+    ],
+    proofRequired:
+      "Feedback note and screenshot of the tested page",
+    deadlineDays: 3,
   },
   {
     id: 3,
@@ -61,7 +100,16 @@ const initialTasks: Task[] = [
     minutes: 10,
     device: "All devices",
     location: "India",
-    description: "Answer the survey questions honestly.",
+    description:
+      "Answer the survey questions honestly.",
+    instructions: [
+      "Open the survey.",
+      "Answer every required question honestly.",
+      "Review your answers before submitting.",
+      "Save the survey completion confirmation.",
+    ],
+    proofRequired: "Survey completion screenshot",
+    deadlineDays: 2,
   },
   {
     id: 4,
@@ -72,89 +120,253 @@ const initialTasks: Task[] = [
     minutes: 12,
     device: "Android",
     location: "India",
-    description: "Test the main screens and report any issues.",
+    description:
+      "Test the main screens and report any issues.",
+    instructions: [
+      "Install and open the test application.",
+      "Visit each main screen.",
+      "Try the available buttons and forms.",
+      "Describe any issue and attach a screenshot.",
+    ],
+    proofRequired:
+      "Screenshots and a short issue report",
+    deadlineDays: 3,
   },
 ];
 
-const categories = ["All categories", ...Array.from(new Set(initialTasks.map((task) => task.category)))];
+const categories = [
+  "All categories",
+  ...Array.from(new Set(initialTasks.map((task) => task.category))),
+];
 
-function loadAcceptedTasks(): AcceptedTask[] {
+const money = (amount: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(amount);
+
+const storageKey = (workerId: string) =>
+  `shelvi_worker_tasks_${workerId}`;
+
+function loadTasks(workerId: string): WorkerTask[] {
   try {
-    const saved = localStorage.getItem("shelvi_accepted_tasks");
-    if (!saved) return [];
-    const parsed = JSON.parse(saved) as (Task | AcceptedTask)[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((task) => ({
-      ...task,
-      status: "status" in task && task.status === "Submitted" ? "Submitted" : "Accepted",
-    }));
+    const raw = localStorage.getItem(storageKey(workerId));
+
+    if (!raw) return [];
+
+    const value = JSON.parse(raw);
+
+    return Array.isArray(value) ? value : [];
   } catch {
     return [];
   }
 }
 
-export default function TaskMarketplace() {
-  const [tasks, setTasks] = useState<AcceptedTask[]>(loadAcceptedTasks);
+export default function TaskMarketplace({
+  workerId,
+  view = "marketplace",
+  onTasksChange,
+}: Props) {
+  const [tasks, setTasks] = useState<WorkerTask[]>(() =>
+    loadTasks(workerId)
+  );
+
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState<"Available" | "Active">("Available");
-  const [categoryFilter, setCategoryFilter] = useState("All categories");
+  const [category, setCategory] =
+    useState("All categories");
+
+  const [tab, setTab] = useState<
+    "Available" | "Active" | "History"
+  >(view === "my-tasks" ? "Active" : "Available");
+
   const [message, setMessage] = useState("");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selected, setSelected] =
+    useState<Task | WorkerTask | null>(null);
+
+  const [proofNote, setProofNote] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(
+    null
+  );
+  const [proofError, setProofError] = useState("");
 
   useEffect(() => {
-    localStorage.setItem("shelvi_accepted_tasks", JSON.stringify(tasks));
-  }, [tasks]);
+    setTasks(loadTasks(workerId));
+    setTab(view === "my-tasks" ? "Active" : "Available");
+  }, [workerId, view]);
 
-  const matchesFilters = (task: Task) => {
+  useEffect(() => {
+    localStorage.setItem(
+      storageKey(workerId),
+      JSON.stringify(tasks)
+    );
+
+    onTasksChange?.(tasks);
+  }, [tasks, workerId, onTasksChange]);
+
+  const available = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const matchesSearch =
-      !query ||
-      task.title.toLowerCase().includes(query) ||
-      task.client.toLowerCase().includes(query) ||
-      task.description.toLowerCase().includes(query);
-    const matchesCategory = categoryFilter === "All categories" || task.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  };
 
-  const availableTasks = useMemo(
-    () => initialTasks.filter(
-      (task) => !tasks.some((accepted) => accepted.id === task.id) && matchesFilters(task),
-    ),
-    [tasks, search, categoryFilter],
-  );
+    return initialTasks.filter((task) => {
+      const alreadyAccepted = tasks.some(
+        (item) => item.id === task.id
+      );
 
-  const activeTasks = useMemo(
-    () => tasks.filter((task) => matchesFilters(task)),
-    [tasks, search, categoryFilter],
-  );
+      const matchesSearch =
+        !query ||
+        `${task.title} ${task.client} ${task.description} ${task.category}`
+          .toLowerCase()
+          .includes(query);
+
+      const matchesCategory =
+        category === "All categories" ||
+        task.category === category;
+
+      return (
+        !alreadyAccepted &&
+        matchesSearch &&
+        matchesCategory
+      );
+    });
+  }, [tasks, search, category]);
+
+  const active = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return tasks.filter((task) => {
+      const matchesSearch =
+        !query ||
+        `${task.title} ${task.client} ${task.description} ${task.category}`
+          .toLowerCase()
+          .includes(query);
+
+      const matchesCategory =
+        category === "All categories" ||
+        task.category === category;
+
+      return (
+        ["Accepted", "Pending Verification"].includes(
+          task.status
+        ) &&
+        matchesSearch &&
+        matchesCategory
+      );
+    });
+  }, [tasks, search, category]);
+
+  const history = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return tasks.filter((task) => {
+      const matchesSearch =
+        !query ||
+        `${task.title} ${task.client} ${task.description} ${task.category}`
+          .toLowerCase()
+          .includes(query);
+
+      const matchesCategory =
+        category === "All categories" ||
+        task.category === category;
+
+      return (
+        ["Approved", "Rejected", "Completed"].includes(
+          task.status
+        ) &&
+        matchesSearch &&
+        matchesCategory
+      );
+    });
+  }, [tasks, search, category]);
+
+  const shown =
+    view === "my-tasks"
+      ? tab === "History"
+        ? history
+        : active
+      : tab === "Available"
+        ? available
+        : tab === "History"
+          ? history
+          : active;
 
   function acceptTask(task: Task) {
-    setTasks((current) => [...current, { ...task, status: "Accepted" }]);
-    setMessage(`You accepted "${task.title}".`);
-    setSelectedTask(null);
-    setActiveTab("Active");
+    const accepted: WorkerTask = {
+      ...task,
+      status: "Accepted",
+      acceptedAt: new Date().toISOString(),
+    };
+
+    setTasks((current) => [...current, accepted]);
+
+    setMessage(
+      `You accepted "${task.title}". It is now listed under My tasks.`
+    );
+
+    setSelected(null);
+    setTab("Active");
   }
 
-  function submitTask(task: AcceptedTask) {
-    if (task.status === "Submitted") return;
-    setTasks((current) => current.map((item) =>
-      item.id === task.id ? { ...item, status: "Submitted" } : item,
-    ));
-    setMessage(`"${task.title}" was submitted for review. Verification is a demo until a backend is connected.`);
+  function submitProof(task: WorkerTask) {
+    if (!proofNote.trim() && !proofFile) {
+      setProofError(
+        "Add a short completion note or select a proof file before submitting."
+      );
+      return;
+    }
+
+    setTasks((current) =>
+      current.map((item) =>
+        item.id === task.id
+          ? {
+              ...item,
+              status: "Pending Verification",
+              submittedAt: new Date().toISOString(),
+              proofNote: proofNote.trim(),
+              proofFileName: proofFile?.name,
+            }
+          : item
+      )
+    );
+
+    setMessage(
+      `Proof details for "${task.title}" were submitted for verification.`
+    );
+
+    setSelected(null);
+    setProofNote("");
+    setProofFile(null);
+    setProofError("");
+    setTab("Active");
   }
 
-  const displayedTasks = activeTab === "Available" ? availableTasks : activeTasks;
+  const statusClass = (status: WorkerTask["status"]) =>
+    status.toLowerCase().replace(/ /g, "-");
 
   return (
     <div className="task-page">
       <div className="task-page-header">
         <div>
           <p className="task-eyebrow">WORKER WORKSPACE</p>
-          <h1>Task marketplace</h1>
-          <p>Discover tasks and earn rewards for completed work.</p>
+
+          <h1>
+            {view === "my-tasks"
+              ? "My tasks"
+              : "Task marketplace"}
+          </h1>
+
+          <p>
+            {view === "my-tasks"
+              ? "Track your accepted tasks and submitted work."
+              : "Discover tasks, review requirements and earn rewards."}
+          </p>
         </div>
+
         <div className="task-total">
-          <span>Accepted tasks</span>
+          <span>
+            {view === "my-tasks"
+              ? "My tasks"
+              : "Accepted tasks"}
+          </span>
           <strong>{tasks.length}</strong>
         </div>
       </div>
@@ -162,131 +374,382 @@ export default function TaskMarketplace() {
       {message && (
         <div className="task-message" role="status">
           <CheckCircle2 size={18} />
+
           <span>{message}</span>
-          <button onClick={() => setMessage("")}>Dismiss</button>
+
+          <button onClick={() => setMessage("")}>
+            Dismiss
+          </button>
         </div>
       )}
 
       <div className="task-toolbar">
         <div className="task-search">
           <Search size={17} />
+
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
             placeholder="Search tasks or clients..."
-            aria-label="Search tasks or clients"
+            aria-label="Search tasks"
           />
         </div>
 
         <label className="task-category-filter">
-          <span className="sr-only">Filter by category</span>
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-            {categories.map((category) => <option key={category}>{category}</option>)}
+          <span className="sr-only">
+            Filter category
+          </span>
+
+          <select
+            value={category}
+            onChange={(event) =>
+              setCategory(event.target.value)
+            }
+          >
+            {categories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
           </select>
         </label>
 
         <div className="task-tabs">
-          {(["Available", "Active"] as const).map((tab) => (
+          {(
+            view === "my-tasks"
+              ? ["Active", "History"]
+              : ["Available", "Active", "History"]
+          ).map((item) => (
             <button
-              key={tab}
-              className={activeTab === tab ? "active" : ""}
-              onClick={() => setActiveTab(tab)}
+              key={item}
+              className={tab === item ? "active" : ""}
+              onClick={() =>
+                setTab(
+                  item as "Available" | "Active" | "History"
+                )
+              }
             >
-              {tab}
-              {tab === "Active" && ` (${tasks.length})`}
+              {item}
+
+              {item === "Active" && ` (${active.length})`}
+              {item === "History" && ` (${history.length})`}
             </button>
           ))}
         </div>
       </div>
 
       <div className="task-grid">
-        {displayedTasks.map((task) => {
-          const acceptedTask = activeTab === "Active" ? task as AcceptedTask : null;
+        {shown.map((task) => {
+          const accepted =
+            "status" in task ? task : null;
+
           return (
             <article className="task-card" key={task.id}>
               <div className="task-card-top">
                 <div className="task-category-icon">
-                  {task.device === "Desktop" ? <Globe size={22} /> : <Smartphone size={22} />}
+                  {task.device === "Desktop" ? (
+                    <Globe size={22} />
+                  ) : (
+                    <Smartphone size={22} />
+                  )}
                 </div>
-                <span className="task-category">{task.category}</span>
+
+                <span className="task-category">
+                  {task.category}
+                </span>
               </div>
 
               <h2>{task.title}</h2>
-              <p className="task-client">By {task.client}</p>
-              <p className="task-description">{task.description}</p>
+
+              <p className="task-client">
+                By {task.client}
+              </p>
+
+              <p className="task-description">
+                {task.description}
+              </p>
 
               <div className="task-details">
-                <span><Clock size={15} /> {task.minutes} min</span>
-                <span><MapPin size={15} /> {task.location}</span>
-                <span><Smartphone size={15} /> {task.device}</span>
+                <span>
+                  <Clock size={15} />
+                  {task.minutes} min
+                </span>
+
+                <span>
+                  <MapPin size={15} />
+                  {task.location}
+                </span>
+
+                <span>
+                  <Smartphone size={15} />
+                  {task.device}
+                </span>
               </div>
 
               <div className="task-card-footer">
                 <div>
-                  <span className="task-reward-label">REWARD</span>
-                  <strong>₹{task.reward}</strong>
+                  <span className="task-reward-label">
+                    REWARD
+                  </span>
+
+                  <strong>{money(task.reward)}</strong>
                 </div>
+
                 <div className="task-card-actions">
-                  <button className="task-details-button" onClick={() => setSelectedTask(task)}>
-                    <Eye size={16} /> Details
+                  <button
+                    className="task-details-button"
+                    onClick={() => {
+                      setSelected(task);
+                      setProofNote(
+                        accepted?.proofNote || ""
+                      );
+                      setProofFile(null);
+                      setProofError("");
+                    }}
+                  >
+                    <Eye size={16} />
+                    Details
                   </button>
-                  {activeTab === "Available" ? (
-                    <button onClick={() => acceptTask(task)}>Accept task</button>
-                  ) : acceptedTask?.status === "Submitted" ? (
-                    <span className="task-submitted-status">Submitted</span>
-                  ) : (
-                    <button className="task-complete-button" onClick={() => submitTask(acceptedTask!)}>
-                      <ClipboardCheck size={16} /> Submit for review
+
+                  {!accepted ? (
+                    <button
+                      onClick={() => acceptTask(task)}
+                    >
+                      Accept task
                     </button>
+                  ) : accepted.status === "Accepted" ? (
+                    <button
+                      className="task-complete-button"
+                      onClick={() => {
+                        setSelected(accepted);
+                        setProofNote("");
+                        setProofFile(null);
+                        setProofError("");
+                      }}
+                    >
+                      Submit proof
+                    </button>
+                  ) : (
+                    <span
+                      className={`task-status-pill ${statusClass(
+                        accepted.status
+                      )}`}
+                    >
+                      {accepted.status}
+                    </span>
                   )}
                 </div>
               </div>
-              {acceptedTask && (
-                <p className="task-status-note">Status: <strong>{acceptedTask.status}</strong></p>
+
+              {accepted && (
+                <p className="task-status-note">
+                  Status: <strong>{accepted.status}</strong>
+                </p>
               )}
             </article>
           );
         })}
 
-        {displayedTasks.length === 0 && (
+        {shown.length === 0 && (
           <div className="task-empty">
             <ClipboardCheck size={30} />
-            <h2>No tasks found</h2>
-            <p>Try another search, choose a different category, or switch between Available and Active.</p>
+
+            <h2>
+              {tab === "Available"
+                ? "No available tasks"
+                : "No tasks to display"}
+            </h2>
+
+            <p>
+              Try changing your search or category filter.
+              Accepted tasks will appear here.
+            </p>
           </div>
         )}
       </div>
 
-      {selectedTask && (
-        <div className="task-modal-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setSelectedTask(null);
-        }}>
-          <section className="task-details-modal" role="dialog" aria-modal="true" aria-labelledby="task-details-title">
+      {selected && (
+        <div
+          className="task-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelected(null);
+            }
+          }}
+        >
+          <section
+            className="task-details-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="task-details-title"
+          >
             <div className="task-details-modal-header">
               <div>
-                <p className="task-eyebrow">TASK DETAILS</p>
-                <h2 id="task-details-title">{selectedTask.title}</h2>
+                <p className="task-eyebrow">
+                  TASK DETAILS
+                </p>
+
+                <h2 id="task-details-title">
+                  {selected.title}
+                </h2>
               </div>
-              <button className="task-modal-close" onClick={() => setSelectedTask(null)} aria-label="Close task details">
+
+              <button
+                className="task-modal-close"
+                onClick={() => setSelected(null)}
+                aria-label="Close"
+              >
                 <X size={20} />
               </button>
             </div>
-            <p><strong>Client:</strong> {selectedTask.client}</p>
-            <p><strong>Category:</strong> {selectedTask.category}</p>
-            <p>{selectedTask.description}</p>
+
+            <p>
+              <strong>Client:</strong> {selected.client}
+            </p>
+
+            <p>
+              <strong>Category:</strong>{" "}
+              {selected.category}
+            </p>
+
+            <p>{selected.description}</p>
+
             <div className="task-modal-facts">
-              <span><strong>Reward</strong> ₹{selectedTask.reward}</span>
-              <span><strong>Estimated time</strong> {selectedTask.minutes} minutes</span>
-              <span><strong>Device</strong> {selectedTask.device}</span>
-              <span><strong>Location</strong> {selectedTask.location}</span>
+              <span>
+                <strong>Reward</strong>
+                {money(selected.reward)}
+              </span>
+
+              <span>
+                <strong>Estimated time</strong>
+                {selected.minutes} minutes
+              </span>
+
+              <span>
+                <strong>Device</strong>
+                {selected.device}
+              </span>
+
+              <span>
+                <strong>Deadline</strong>
+                {selected.deadlineDays} days after acceptance
+              </span>
             </div>
-            <div className="task-modal-actions">
-              <button className="task-details-button" onClick={() => setSelectedTask(null)}>Close</button>
-              {activeTab === "Available" && !tasks.some((task) => task.id === selectedTask.id) && (
-                <button onClick={() => acceptTask(selectedTask)}>Accept task · ₹{selectedTask.reward}</button>
+
+            <div className="task-instructions">
+              <h3>Task instructions</h3>
+
+              <ol>
+                {selected.instructions.map(
+                  (instruction, index) => (
+                    <li key={index}>{instruction}</li>
+                  )
+                )}
+              </ol>
+
+              <p>
+                <strong>Required proof:</strong>{" "}
+                {selected.proofRequired}
+              </p>
+            </div>
+
+            {"status" in selected &&
+              selected.status === "Accepted" && (
+                <div className="task-proof-form">
+                  <h3>
+                    <Upload size={17} />
+                    Submit completion proof
+                  </h3>
+
+                  <label>
+                    Completion note
+
+                    <textarea
+                      value={proofNote}
+                      onChange={(event) =>
+                        setProofNote(event.target.value)
+                      }
+                      rows={3}
+                      placeholder="Explain what you completed and include any relevant details..."
+                    />
+                  </label>
+
+                  <label>
+                    Proof attachment (optional)
+
+                    <input
+                      type="file"
+                      accept="image/*,.pdf,.mp4"
+                      onChange={(event) =>
+                        setProofFile(
+                          event.target.files?.[0] || null
+                        )
+                      }
+                    />
+                  </label>
+
+                  {proofFile && (
+                    <small>
+                      Selected: {proofFile.name}
+                    </small>
+                  )}
+
+                  {proofError && (
+                    <p className="task-proof-error">
+                      {proofError}
+                    </p>
+                  )}
+
+                  <p className="task-demo-note">
+                    Demo mode stores the proof note and
+                    selected filename in this browser. The
+                    actual attachment must be uploaded to
+                    secure server storage when the backend
+                    is connected.
+                  </p>
+                </div>
               )}
+
+            <div className="task-modal-actions">
+              <button
+                className="task-details-button"
+                onClick={() => setSelected(null)}
+              >
+                Close
+              </button>
+
+              {!("status" in selected) &&
+                tab === "Available" && (
+                  <button
+                    onClick={() => acceptTask(selected)}
+                  >
+                    Accept task · {money(selected.reward)}
+                  </button>
+                )}
+
+              {"status" in selected &&
+                selected.status === "Accepted" && (
+                  <button
+                    onClick={() =>
+                      submitProof(selected as WorkerTask)
+                    }
+                  >
+                    Submit for verification
+                  </button>
+                )}
             </div>
-            <p className="task-demo-note">Demo marketplace: task acceptance and submission are saved in this browser. Review and payment require a backend.</p>
+
+            {"status" in selected &&
+              selected.status === "Pending Verification" && (
+                <p className="task-demo-note">
+                  Your submission is awaiting review. Reward
+                  is not available for withdrawal until it is
+                  approved.
+                </p>
+              )}
           </section>
         </div>
       )}
